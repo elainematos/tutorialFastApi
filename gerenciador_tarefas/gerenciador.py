@@ -1,28 +1,32 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from pydantic.types import constr 
+from uuid import UUID, uuid4
+from enum import Enum
 
 app = FastAPI()
 
-TAREFAS = [
-    {
-        "id": "1",
-        "titulo": "fazer compras",
-        "descrição": "comprar leite e ovos",
-        "estado": "não finalizado",
-    },
-    {
-        "id": "2",
-        "titulo": "levar o cachorro para tosar",
-        "descrição": "está muito peludo",
-        "estado": "não finalizado",
-    },
-    {
-        "id": "3",
-        "titulo": "lavar roupas",
-        "descrição": "estão sujas",
-        "estado": "não finalizado",
-    },
-]
+class EstadosPossiveis(str,Enum):
+    finalizado = "Finalizado"
+    nao_finalizado = "Não Finalizado"
+
+class TarefaEntrada(BaseModel):
+    titulo: str
+    descricao: constr(min_length=5)
+    estado: EstadosPossiveis =  EstadosPossiveis.nao_finalizado
+
+class Tarefa(TarefaEntrada):
+    id: UUID
+
+TAREFAS = []
 
 @app.get("/tarefas")
 def listar():
     return TAREFAS
+
+@app.post("/tarefas", response_model=Tarefa, status_code=201)
+def criar(tarefa: TarefaEntrada):
+    nova_tarefa = tarefa.dict()
+    nova_tarefa.update({"id": uuid4()})
+    TAREFAS.append(nova_tarefa)
+    return nova_tarefa  
